@@ -14,7 +14,7 @@ T0  = 500;
 % Montée linéaire de 0 à theta_max entre t1 et t2
 % Palier à theta_max entre t2 et t3
 % Descente linéaire de theta_max à 0 entre t3 et t4
-theta_max   = pi/6;
+theta_max   = pi/12;
 t1 = 2; t2 = 4; t3 = 6; t4 = 8;
 
 % Définition des commandes
@@ -105,7 +105,7 @@ function dxdt = dynamics(t, x, T_cmd, theta_cmd, m, I, f, Lg, g, rho, S)
     beta = alpha - theta;   % direction réelle de la vitesse
     psi = alpha + phi;
     
-    Fg = rho*S*2*beta*u^2; % Force de la gouverne
+    Fg = rho*S*sin(2*beta)*u^2; % Force de la gouverne
     
     dx      = u*cos(psi); % x
     dy      = u*sin(psi); % y
