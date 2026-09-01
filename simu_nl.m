@@ -49,7 +49,7 @@ plot(x_sol(:,1), x_sol(:,2), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectoire')
 % Orientation de la vitesse
 n_arrows = 15;  % Nombre de flèches
 idx = round(linspace(1, length(t_sol), n_arrows));
-quiver(x_sol(idx,1), x_sol(idx, 2), cos(x_sol(idx,3)+x_sol(idx,4)),  sin(x_sol(idx,3)+x_sol(idx,4)), 0, 'k', 'LineWidth', 1.2, 'DisplayName', 'Vitesse \alpha+\phi');
+quiver(x_sol(idx,1), x_sol(idx, 2), x_sol(idx,5).*cos(x_sol(idx,3)+x_sol(idx,4)),  x_sol(idx,5).*sin(x_sol(idx,3)+x_sol(idx,4)), 0, 'k', 'LineWidth', 1.2, 'DisplayName', 'Vitesse \alpha+\phi');
 % Cap
 quiver(x_sol(idx,1), x_sol(idx, 2), cos(x_sol(idx,3)),  sin(x_sol(idx,3)), 0, 'r', 'LineWidth', 1.2, 'DisplayName', 'Cap \phi');
 

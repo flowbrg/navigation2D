@@ -3,7 +3,7 @@ clear; clc; close all;
 
 % --- Paramètres de la scène ---
 R_obs = 0.3;    % rayon des poteaux
-ecart = 0.3;    % distance de sécurité aux obstacles
+ecart = 1;    % distance de sécurité aux obstacles
 
 % Départ et cible
 start_pos  = [0, 0];
