@@ -8,6 +8,7 @@ init
 %% --- Paramètres du NLP ---
 N        = 40;       % nombre d'intervalles
 w_ctrl   = 0.01;      % poids régularisation commandes
+w_Tf     = 1;
 Tf_init  = 30;        % initialisation Tf (s)
 Tf_min   = 5;
 Tf_max   = 120;
@@ -16,7 +17,7 @@ Tf_max   = 120;
 T_max     = 700;
 theta_max = pi/3;
 u_min     = 1e-2;     % évite singularité alpha
-u_max     = 700/f;    % vitesse max theorique = T_max/f 
+u_max     = sqrt(T_max/f);    % vitesse max theorique = T_max/f 
 
 % Cible
 xt = target_pos(1); yt = target_pos(2);
@@ -63,7 +64,7 @@ f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
 
 %% --- Construction du NLP ---
 
-J    = 0;           % critère
+J    = w_Tf * Tf;   % critère
 g    = {};          % contraintes d'égalité (collocation)
 g_lb = {};          % bornes inférieures
 g_ub = {};          % bornes supérieures
@@ -212,7 +213,7 @@ subplot(4,1,2); plot(t_sol, rad2deg(X_sol(3,:)), 'r', 'LineWidth',1.5);
 ylabel('\phi (°)'); grid on; title('Cap');
 
 subplot(4,1,3); plot(t_sol, rad2deg(X_sol(4,:)), 'g', 'LineWidth',1.5);
-ylabel('\alpha (°)'); grid on; title('Angle de dérapage');
+ylabel('\alpha (°)'); grid on; title("Angle d'attaque");
 
 subplot(4,1,4); plot(t_sol, X_sol(6,:), 'm', 'LineWidth',1.5);
 ylabel('r (rad/s)'); grid on; title('Vitesse de lacet');

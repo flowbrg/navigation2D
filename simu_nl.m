@@ -43,6 +43,7 @@ theta_sol       = arrayfun(theta_cmd, t_sol);
 %% Figure 1 : Trajectoire
 figure(1); hold on; axis equal; grid on;
 %xlim([-15, 15]); ylim([-15, 6]);
+
 xlabel('x (m)'); ylabel('y (m)');
 plot(x_sol(:,1), x_sol(:,2), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectoire');
 
