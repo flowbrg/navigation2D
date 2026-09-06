@@ -1,6 +1,9 @@
 %% Visualisation de la zone de navigation
 clear; clc; close all;
-init    % Lance le script init.m
+
+init_params
+
+scenario
 
 % --- Figure ---
 figure; hold on; axis equal; grid on;
@@ -25,5 +28,3 @@ plot(start_pos(1), start_pos(2), 'gs', ...
 plot(target_pos(1), target_pos(2), 'p', ...
     'MarkerSize', 16, 'MarkerFaceColor', 'y', ...
     'MarkerEdgeColor', 'k', 'DisplayName', 'Cible');
-
-legend('Location', 'northwest');

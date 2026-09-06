@@ -1,23 +1,30 @@
-%% Optimisation de trajectoire — Bateau 2D avec dérapage
+%% Optimisation de trajectoire — Bateau 2D 
 %  CasADi + IPOPT
+% Modele d'etat vitesses cartesiennes
+% Ne fonctionne pas correctement
+
 clear; clc; close all;
 import casadi.*
 
-init
+init_params
+
+scenario
 
 %% --- Paramètres du NLP ---
-w_ctrl   = [1/700 1];      % poids régularisation commandes
-w_Tf     = 1;
-Tf_init  = 30;        % initialisation Tf (s)
+Te       = 2;   % Resolution temporelle de la simulation [s]
+Tf_init  = 30;  % initialisation Tf (s)
 Tf_min   = 5;
-Tf_max   = 40;
-N        = 40; % nombre d'intervalles
+Tf_max   = 30;
+N        = Tf_max/Te; % nombre d'intervalles
 
 % Bornes commandes
 T_max     = 700;
 theta_max = pi/3;
-%u_min     = 0;
+%u_min    = 0;
 u_max     = sqrt(T_max/f);    % vitesse max theorique = T_max/f 
+
+% Matrice de pondération des commandes
+W = diag([(1/T_max)^2 (1/theta_max)^2]);      % poids régularisation commandes
 
 % Cible
 xt = target_pos(1); yt = target_pos(2);
@@ -83,7 +90,7 @@ f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
 
 %% --- Construction du NLP ---
 
-J    = w_Tf * Tf;   % critère
+J    = 0;   % critère
 g    = {};          % contraintes d'égalité (collocation)
 g_lb = {};          % bornes inférieures
 g_ub = {};          % bornes supérieures
@@ -98,7 +105,7 @@ for k = 1:N
 
     % Critère : distance à la cible + régularisation
     J = J + ((xk(1)-xt)^2 + (xk(2)-yt)^2 + ...
-             w_ctrl*[uk(1)^2; uk(2)^2]) * h;
+             uk'*W*uk) * h;
 
     % Collocation trapézoïdale
     fk  = f_dyn(xk,  uk);
@@ -269,14 +276,3 @@ ylabel('T (N)'); grid on; title('Poussée');
 subplot(2,1,2); stairs(t_u, rad2deg(U_sol(2,:)), 'r', 'LineWidth',1.5);
 ylabel('\theta (°)'); grid on; title('Angle de gouverne');
 xlabel('t (s)');
-
-%%
-figure(4);
-
-subplot(2,1,1);
-plot(t_sol, X_sol(1,:), 'b', 'LineWidth', 1.5);
-ylabel('x (m)'); grid on;
-
-subplot(2,1,2);
-plot(t_sol, X_sol(2,:), 'r', 'LineWidth', 1.5);
-ylabel('y (m)'); grid on;

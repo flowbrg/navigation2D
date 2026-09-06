@@ -3,21 +3,25 @@
 clear; clc; close all;
 import casadi.*
 
-init
+init_params
+
+scenario
 
 %% --- Paramètres du NLP ---
-N        = 40;       % nombre d'intervalles
-w_ctrl   = 0.01;      % poids régularisation commandes
-w_Tf     = 1;
-Tf_init  = 30;        % initialisation Tf (s)
+Te       = 2;   % Resolution temporelle de la simulation [s]
+Tf_init  = 30;  % initialisation Tf (s)
 Tf_min   = 5;
-Tf_max   = 120;
+Tf_max   = 100;
+N        = Tf_max/Te; % nombre d'intervalles
 
 % Bornes commandes
 T_max     = 700;
 theta_max = pi/3;
-u_min     = 1e-2;     % évite singularité alpha
+%u_min    = 0;
 u_max     = sqrt(T_max/f);    % vitesse max theorique = T_max/f 
+
+% Matrice de pondération des commandes
+W = diag([(1/T_max)^2 (1/theta_max)^2]);      % poids régularisation commandes
 
 % Cible
 xt = target_pos(1); yt = target_pos(2);
@@ -64,7 +68,7 @@ f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
 
 %% --- Construction du NLP ---
 
-J    = w_Tf * Tf;   % critère
+J    = 0;   % critère
 g    = {};          % contraintes d'égalité (collocation)
 g_lb = {};          % bornes inférieures
 g_ub = {};          % bornes supérieures
@@ -76,7 +80,7 @@ for k = 1:N
 
     % Critère : distance à la cible + régularisation
     J = J + ((xk(1)-xt)^2 + (xk(2)-yt)^2 + ...
-             w_ctrl*(uk(1)^2 + uk(2)^2)) * h;
+             uk'*W*uk) * h;
 
     % Collocation trapézoïdale
     fk  = f_dyn(xk,  uk);
@@ -127,7 +131,7 @@ w_lb = Tf_min;
 w_ub = Tf_max;
 
 % États X : [x, y, phi, alpha, u, r] x (N+1)
-x_lb = [-inf; -inf; -inf; -inf; u_min; -inf];
+x_lb = [-inf; -inf; -inf; -inf; -u_max; -inf];
 x_ub = [ inf;  inf;  inf;  inf; u_max;  inf];
 w_lb = [w_lb; repmat(x_lb, N+1, 1)];
 w_ub = [w_ub; repmat(x_ub, N+1, 1)];
