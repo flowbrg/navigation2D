@@ -6,7 +6,7 @@ theta_max = params(11);
 % Feedforward
 [U_ff, X_ref] = feedforward3(sigma_r, params);
 
-[dT, dtheta]  = feedback3(X, X_ref, K, params);
+[dT, dtheta]  = feedback3(X, X_ref, params);
 
 T_ff = U_ff(1);
 theta_ff = U_ff(2);

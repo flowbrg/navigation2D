@@ -1,0 +1,68 @@
+function [dT, dtheta] = feedback3(X, X_ref, K, params)
+
+% Etats de reference
+phi_ref = X_ref(3);
+u_ref   = X_ref(4);
+r_ref   = X_ref(6);
+
+% Parametres
+m   = params(1);
+Yg  = params(3);
+I   = params(4);
+Lg  = params(5);
+rho = params(6);
+S   = params(7);
+Fx  = params(8);
+u0  = u_ref;
+
+% Ecart de position
+e_pos = [X(1) - X_ref(1);
+         X(2) - X_ref(2)];
+
+R_ref = [cos(phi_ref),  sin(phi_ref);
+         -sin(phi_ref), cos(phi_ref)];
+
+e_traj = R_ref * e_pos;
+e_l = e_traj(1);
+e_n = e_traj(2);
+
+% Ecart etats
+dphi = X(3) - phi_ref;
+du = X(4) - u_ref;
+dv = X(5);
+dr = X(6) - r_ref;
+
+% Gains lqr
+% Coefficients
+af  = 2*Fx*u0/m;
+av  = 2*rho*S*u0/m;
+ar  = Yg/I;
+bv  = 2*rho*S*u0^2/m;
+br  = 2*rho*S*Lg*u0^2/I;
+
+% Sous-systeme longitudinal
+A_lon = [0,  1;
+    0, -af];
+B_lon = [0; 1/m];
+
+Q_lon = diag([1/4, 1/4]);
+R_lon = (1/200)^2;
+
+K_lon = lqr(A_lon, B_lon, Q_lon, R_lon);
+
+% Sous-systeme lateral
+A_lat = [0,  u0,   1,    0;
+    0,   0,   0,    1;
+    0,   0,  -av,  -u0;
+    0,   0, br/Lg, -ar];
+B_lat = [0;   0;   bv;  -br];
+
+Q_lat = diag([1, (6/pi)^2, 1, 1/0.09]);
+R_lat = (6/pi)^2;   % = 1/(pi/6)^2
+
+K_lat = lqr(A_lat, B_lat, Q_lat, R_lat);
+
+dT = -K_lon*[e_l; du];
+dtheta = -K_lat * [e_n; dphi; dv; dr;];
+
+end
