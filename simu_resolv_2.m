@@ -8,10 +8,11 @@ import casadi.*
 
 init_params
 
-scenario
+%scenario
+scenario_random 
 
 %% --- Paramètres du NLP ---
-Te       = 2;   % Resolution temporelle de la simulation [s]
+Te       = 1;   % Resolution temporelle de la simulation [s]
 Tf_init  = 30;  % initialisation Tf (s)
 Tf_min   = 5;
 Tf_max   = 30;
@@ -185,7 +186,7 @@ for k = 1:N+1
 
 end
 u_init = zeros(2, N);
-u_init(1,:) = 0.5;             % poussée initiale modérée
+u_init(1,:) = 0.5*T_max;             % poussée initiale modérée
 
 w0 = [Tf_init; reshape(x_init_traj, [], 1); reshape(u_init, [], 1)];
 
