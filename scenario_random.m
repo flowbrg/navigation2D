@@ -1,6 +1,6 @@
 %% Paramètres de la scène
-R_obs = 0.3;    % rayon des poteaux
-ecart = 1;    % distance de sécurité aux obstacles
+R_obs = 0.2;    % rayon des poteaux
+ecart = 0.2;    % distance de sécurité aux obstacles
 
 % Départ et cible
 start_pos  = [0, 0];
@@ -9,7 +9,7 @@ target_pos = [10, 10];
 N=12;
 
 % Centres des obstacles
-obs = 10 * rand(N, 2);
+obs = ones(N,2) + 9 * rand(N, 2);
 n_obs = N;
 
 %% Signaux de commande

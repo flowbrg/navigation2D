@@ -25,7 +25,8 @@ theta_max = pi/3;
 u_max     = sqrt(T_max/f);    % vitesse max theorique = T_max/f 
 
 % Matrice de pondération des commandes
-W = diag([(1/T_max)^2 (1/theta_max)^2]);      % poids régularisation commandes
+%W = diag([(1/T_max)^2 (1/theta_max)^2]);
+W = diag([0.001 (1/theta_max)^2]);      % poids régularisation commandes
 
 % Cible
 xt = target_pos(1); yt = target_pos(2);

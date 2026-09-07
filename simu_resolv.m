@@ -11,7 +11,7 @@ scenario_random
 %% --- Paramètres du NLP ---
 Te       = 2;   % Resolution temporelle de la simulation [s]
 Tf_init  = 30;  % initialisation Tf (s)
-Tf_min   = 5;
+Tf_min   = 1e-2;
 Tf_max   = 100;
 N        = Tf_max/Te; % nombre d'intervalles
 
