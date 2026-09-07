@@ -1,4 +1,3 @@
-````markdown
 # 2D Boat Navigation
 
 Simulation and optimal control of a boat navigating in a 2D environment with obstacles.
