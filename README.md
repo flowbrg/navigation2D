@@ -4,7 +4,10 @@ Simulation and optimal control of a boat navigating in a 2D environment with obs
 
 The objective is to compute an **optimal trajectory** allowing the boat to reach a target while avoiding obstacles, using a nonlinear dynamic model and a **Nonlinear Programming (NLP)** approach.
 
-![Optimal trajectory](./figures/Figure_1_resolv_2.png)
+
+<p align="center">
+  <img src="./figures/Figure_1_resolv_2.png" width="33%">
+</p>
 
 ## Project structure
 
@@ -18,6 +21,10 @@ The objective is to compute an **optimal trajectory** allowing the boat to reach
 - `simu_resolv.m` — Optimal trajectory computation.
 - `simu_resolv2.m` — Optimal trajectory computation using the robust model.
 - `figures/` — Figures generated from the simulations and optimization results.
+
+## Requirements
+
+[CasADi](https://web.casadi.org/)
 
 ## Model
 
