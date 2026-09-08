@@ -12,7 +12,7 @@ scenario_random
 Te       = 2;   % Resolution temporelle de la simulation [s]
 Tf_init  = 30;  % initialisation Tf (s)
 Tf_min   = 1e-2;
-Tf_max   = 100;
+Tf_max   = 120;
 N        = Tf_max/Te; % nombre d'intervalles
 
 % Bornes commandes
@@ -22,7 +22,9 @@ theta_max = pi/3;
 u_max     = sqrt(T_max/f);    % vitesse max theorique = T_max/f 
 
 % Matrice de pondération des commandes
-W = diag([(1/T_max)^2 (1/theta_max)^2]);      % poids régularisation commandes
+%W = diag([(1/T_max)^2 (1/theta_max)^2]);
+W = diag([0.001 (1/theta_max)^2]);      % poids régularisation commandes
+Q= 0.01*eye(2);
 
 % Cible
 xt = target_pos(1); yt = target_pos(2);
@@ -78,9 +80,11 @@ for k = 1:N
     xk  = X(:, k);
     xk1 = X(:, k+1);
     uk  = U(:, k);
+    
+    zk  = [xk(1)-xt; xk(2)-yt];
 
     % Critère : distance à la cible + régularisation
-    J = J + ((xk(1)-xt)^2 + (xk(2)-yt)^2 + ...
+    J = J + (zk'*Q*zk + ...
              uk'*W*uk) * h;
 
     % Collocation trapézoïdale

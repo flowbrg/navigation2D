@@ -12,11 +12,11 @@ init_params
 scenario_random 
 
 %% --- Paramètres du NLP ---
-Te       = 1;   % Resolution temporelle de la simulation [s]
+Te_max   = 1;   % Resolution temporelle de la simulation [s]
 Tf_init  = 30;  % initialisation Tf (s)
-Tf_min   = 5;
-Tf_max   = 30;
-N        = Tf_max/Te; % nombre d'intervalles
+Tf_min   = 1e-2;
+Tf_max   = 120;
+N        = Tf_max/Te_max; % nombre d'intervalles
 
 % Bornes commandes
 T_max     = 700;
@@ -26,7 +26,8 @@ u_max     = sqrt(T_max/f);    % vitesse max theorique = T_max/f
 
 % Matrice de pondération des commandes
 %W = diag([(1/T_max)^2 (1/theta_max)^2]);
-W = diag([0.001 (1/theta_max)^2]);      % poids régularisation commandes
+W = diag([0.001 1]);      % poids régularisation commandes
+Q= 0.01*eye(2);
 
 % Cible
 xt = target_pos(1); yt = target_pos(2);
@@ -92,7 +93,7 @@ f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
 
 %% --- Construction du NLP ---
 
-J    = 0;   % critère
+J    = 0;           % critère
 g    = {};          % contraintes d'égalité (collocation)
 g_lb = {};          % bornes inférieures
 g_ub = {};          % bornes supérieures
@@ -105,8 +106,10 @@ for k = 1:N
     xk1 = X(:, k+1);
     uk  = U(:, k);
 
+    zk  = [xk(1)-xt; xk(2)-yt];
+
     % Critère : distance à la cible + régularisation
-    J = J + ((xk(1)-xt)^2 + (xk(2)-yt)^2 + ...
+    J = J + (zk'*Q*zk + ...
              uk'*W*uk) * h;
 
     % Collocation trapézoïdale
@@ -238,8 +241,9 @@ plot(X_sol(1,:), X_sol(2,:), 'b-', 'LineWidth', 2, 'DisplayName','Trajectoire');
 n_arr = 15;
 idx   = round(linspace(1, N+1, n_arr));
 beta_sol = X_sol(3,:) + X_sol(4,:);
+V_sol = sqrt(X_sol(4,idx).^2 + X_sol(5,idx).^2);
 quiver(X_sol(1,idx), X_sol(2,idx), ...
-       X_sol(4,idx), X_sol(5,idx), ...
+       0.4*X_sol(4,idx)./V_sol, 0.4*X_sol(5,idx)./V_sol, ...
        0, 'k', 'DisplayName','Direction vitesse');
 %legend('Location','northwest');
 
