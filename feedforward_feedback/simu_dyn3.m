@@ -9,8 +9,8 @@ init_params
 scenario_random
 
 %% Conditions initiales
-% [x, y, phi, vx, vy, r)
-x0 = [0; 0; pi/4; 3; 3; 0];    % Cap initial de 45°, vers la cible
+% [x, y, phi, u, v, r)
+x0 = [0; 0; pi/4; 5.6; 0; 0];    % Cap initial de 45°, vers la cible
 
 % Intégration ode45, explicit runge-kutta
 t_span          = [0,20];
@@ -32,7 +32,9 @@ plot(x_sol(:,1), x_sol(:,2), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectoire')
 % Orientation de la vitesse
 n_arrows = 15;  % Nombre de flèches
 idx = round(linspace(1, length(t_sol), n_arrows));
-% quiver(x_sol(idx,1), x_sol(idx, 2), x_sol(idx,4),  x_sol(idx,5), 0, 'k', 'LineWidth', 1.2, 'DisplayName', 'Vitesse \alpha+\phi');
+alpha_sol = atan2(x_sol(:,5), x_sol(:,4));
+V_sol   = sqrt(x_sol(:,5).^2 + x_sol(:,4).^2);
+quiver(x_sol(idx,1), x_sol(idx, 2), V_sol(idx).*cos(alpha_sol(idx)+x_sol(idx, 3)),  V_sol(idx).*sin(alpha_sol(idx)+x_sol(idx, 3)), 0, 'k', 'LineWidth', 1.2, 'DisplayName', 'Vitesse \alpha+\phi');
 % Cap
 quiver(x_sol(idx,1), x_sol(idx, 2), cos(x_sol(idx,3)),  sin(x_sol(idx,3)), 0, 'r', 'LineWidth', 1.2, 'DisplayName', 'Cap \phi');
 
@@ -49,12 +51,12 @@ ylabel('\phi (°)'); grid on; title('Cap');
 
 % angle d'incidence
 subplot(4,1,2);
-plot(t_sol, rad2deg(atan2(x_sol(:,5), x_sol(:,4))-x_sol(:,3)), 'g', 'LineWidth', 1.5);
-ylabel('\alpha (°)'); grid on; title('Angle d attaque');
+plot(t_sol, rad2deg(alpha_sol), 'g', 'LineWidth', 1.5);
+ylabel('\alpha (°)'); grid on; title("Angle d'incidence");
 
 % vitesse longi
 subplot(4,1,3);
-plot(t_sol, sqrt(x_sol(:,4).^2+x_sol(:,5).^2), 'b', 'LineWidth', 1.5);
+plot(t_sol, V_sol, 'b', 'LineWidth', 1.5);
 ylabel('u (m/s)'); grid on; title('Vitesse');
 
 % vitesse de lacet
