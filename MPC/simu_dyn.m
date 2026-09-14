@@ -6,7 +6,7 @@ clear; clc; close all;
 
 init_params
 
-scenario
+scenario_random
 
 %% Conditions initiales
 % [x, y, phi, alpha, u, r)
@@ -15,7 +15,7 @@ x0 = [0; 0; pi/4; 0; 1e-2; 0];    % Cap initial de 45°, vers la cible
 % Intégration ode45, explicit runge-kutta
 t_span          = [0,20];
 
-ode_fun         = @(t,x) dyn(t, x, T_cmd, theta_cmd, m, I, f, Lg, g, rho, S);
+ode_fun         = @(t,x) dyn(x, [T_cmd(t), theta_cmd(t)], params);
 options         = odeset('RelTol', 1e-6, 'AbsTol', 1e-8);
 [t_sol, x_sol]  = ode45(ode_fun, t_span, x0, options);
 

@@ -1,6 +1,6 @@
 %% Simulation navigation 2D basique
-% Modele d'etat avec vitesses cartesiennes
-% X = [x, y, phi, vx, vy, r]
+% Modele d'etat avec vitesses cartesiennes dans le repere du bateau
+% X = [x, y, phi, u, v, r]
 
 clear; clc; close all;
 
@@ -10,12 +10,12 @@ scenario_random
 
 %% Conditions initiales
 % [x, y, phi, vx, vy, r)
-x0 = [0; 0; pi/4; 4; 4; 0];    % Cap initial de 45°, vers la cible
+x0 = [0; 0; pi/4; 3; 3; 0];    % Cap initial de 45°, vers la cible
 
 % Intégration ode45, explicit runge-kutta
 t_span          = [0,20];
 
-ode_fun         = @(t,x) dyn2(x, [T_cmd(t), theta_cmd(t)], params);
+ode_fun         = @(t,x) dyn3(x, [T_cmd(t), theta_cmd(t)], params);
 options         = odeset('RelTol', 1e-6, 'AbsTol', 1e-8);
 [t_sol, x_sol]  = ode45(ode_fun, t_span, x0, options);
 
@@ -32,7 +32,7 @@ plot(x_sol(:,1), x_sol(:,2), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectoire')
 % Orientation de la vitesse
 n_arrows = 15;  % Nombre de flèches
 idx = round(linspace(1, length(t_sol), n_arrows));
-quiver(x_sol(idx,1), x_sol(idx, 2), x_sol(idx,4),  x_sol(idx,5), 0, 'k', 'LineWidth', 1.2, 'DisplayName', 'Vitesse \alpha+\phi');
+% quiver(x_sol(idx,1), x_sol(idx, 2), x_sol(idx,4),  x_sol(idx,5), 0, 'k', 'LineWidth', 1.2, 'DisplayName', 'Vitesse \alpha+\phi');
 % Cap
 quiver(x_sol(idx,1), x_sol(idx, 2), cos(x_sol(idx,3)),  sin(x_sol(idx,3)), 0, 'r', 'LineWidth', 1.2, 'DisplayName', 'Cap \phi');
 
@@ -55,7 +55,7 @@ ylabel('\alpha (°)'); grid on; title('Angle d attaque');
 % vitesse longi
 subplot(4,1,3);
 plot(t_sol, sqrt(x_sol(:,4).^2+x_sol(:,5).^2), 'b', 'LineWidth', 1.5);
-ylabel('v (m/s)'); grid on; title('Vitesse longitudinale');
+ylabel('u (m/s)'); grid on; title('Vitesse');
 
 % vitesse de lacet
 subplot(4,1,4);
