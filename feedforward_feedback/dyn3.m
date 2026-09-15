@@ -46,7 +46,7 @@ Ff_vec = [-Fx*u*abs(u); -Fy*v*abs(v)];
 % Acceleration
 % m*(du/dt - v*r) = F_u  =>  du/dt = F_u/m + v*r
 % m*(dv/dt + u*r) = F_v  =>  dv/dt = F_v/m - u*r
-a = (FT_vec + Fg_vec + Ff_vec)/m + [v*r; u*r];
+a = (FT_vec + Fg_vec + Ff_vec)/m + [v*r; -u*r];
 
 % Equations d'etat
 dx   = V(1);
