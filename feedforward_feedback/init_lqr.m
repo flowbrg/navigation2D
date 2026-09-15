@@ -37,10 +37,11 @@ R_lon = (1/200)^2;
 K_lon = lqr(A_lon, B_lon, Q_lon, R_lon);
 
 % Sous-systeme lateral ---
-A_lat = [0,    1,    0;
-         0,   -av,  -u0;
-         0,  br/Lg, -ar];
-B_lat = [0; bv; -br];
+A_lat = [0,  u0,   1,    0;
+         0,   0,   0,    1;
+         0,   0,  -av,  -u0;
+         0,   0, br/Lg, -ar];
+B_lat = [0;   0;   bv;  -br];
 
 Q_lat = diag([1, 1, 1/0.09]);
 R_lat = (6/pi)^2;   % = 1/(pi/6)^2
