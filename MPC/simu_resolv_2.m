@@ -9,13 +9,13 @@ import casadi.*
 init_params
 
 %scenario
-scenario_random 
+scenario_random2
 
 %% --- Paramètres du NLP ---
-Te_max   = 1;   % Resolution temporelle de la simulation [s]
+Te_max   = 0.5;   % Resolution temporelle de la simulation [s]
 Tf_init  = 30;  % initialisation Tf (s)
-Tf_min   = 1e-2;
-Tf_max   = 120;
+Tf_min   = 5;
+Tf_max   = 50;
 N        = Tf_max/Te_max; % nombre d'intervalles
 
 % Bornes commandes
@@ -25,8 +25,8 @@ theta_max = pi/3;
 u_max     = sqrt(T_max/f);    % vitesse max theorique = T_max/f 
 
 % Matrice de pondération des commandes
-%W = diag([(1/T_max)^2 (1/theta_max)^2]);
-W = diag([0.001 1]);      % poids régularisation commandes
+W = diag([(1/T_max)^2 (1/theta_max)^2]);
+%W = diag([0.001 1]);      % poids régularisation commandes
 Q= 0.01*eye(2);
 
 % Cible
@@ -66,20 +66,28 @@ psi_s   = atan2(vy_s, vx_s);
 alpha_s = psi_s - phi_s;
 beta_s  = alpha_s - theta_s;
 
-% Base du repere de Frenet
-eT_s = [cos(psi_s); sin(psi_s)];
-%eN_s = [-sin(psi_s); cos(psi_s)];
+cphi_s = cos(phi_s);
+sphi_s = sin(phi_s);
+calpha_s = cos(alpha_s);
+salpha_s = sin(alpha_s);
+
+% Matrice de rotation de Rb dans R0
+R_s = [cphi_s -sphi_s; sphi_s cphi_s];
+
+% Vitesses
+v_lon_s = us_s*calpha_s;
+v_lat_s = us_s*salpha_s;
 
 % Force de la gouverne
 Fg_s = rho*S*sin(2*beta_s)*us_s^2;
 
 % Forces
-FT_s = T_s*[cos(phi_s); sin(phi_s)];
-Fg_vec_s = Fg_s*[sin(phi_s-theta_s); -cos(phi_s-theta_s)];
-Ff_s = -f*us_s^2*eT_s;
+FT_s = T_s*[1; 0];
+Fg_vec_s = Fg_s*[sin(theta_s); -cos(theta_s)];
+Ff_s = [-Fx*v_lon_s*abs(v_lon_s); -Fy*v_lat_s*abs(v_lat_s)];
 
 % Acceleration (calcul avec des tableaux)
-a_s = (FT_s + Fg_vec_s + Ff_s)/m;
+a_s = R_s*(FT_s + Fg_vec_s + Ff_s)/m;
 
 f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
     vertcat( ...
@@ -88,7 +96,7 @@ f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
         r_s, ...
         a_s(1), ...
         a_s(2), ...
-        (Fg_s * Lg * cos(theta_s) - g * r_s) / I  ...
+        (Fg_s * Lg * cos(theta_s) - Yg * r_s) / I  ...
     )});
 
 %% --- Construction du NLP ---
@@ -220,55 +228,146 @@ t_sol  = linspace(0, Tf_sol, N+1);
 
 fprintf('Tf optimal : %.2f s\n', Tf_sol);
 
-%% --- Figure 1 : Trajectoire ---
+%% --- Figure 1 : Trajectoires idéale et réelle ---
+
 theta_c = linspace(0, 2*pi, 100);
-figure(1); hold on; axis equal; grid on;
-xlim([-1,12]); ylim([-1,12]);
 
-xlabel('x (m)'); ylabel('y (m)');
-title(sprintf('Trajectoire optimale  (Tf = %.1f s)', Tf_sol));
+figure(1); clf;
+hold on; axis equal; grid on;
+xlim([-1,52]); ylim([-1,52]);
 
+xlabel('x (m)');
+ylabel('y (m)');
+title(sprintf('Trajectoire optimale et trajectoire réelle  (Tf = %.1f s)', Tf_sol));
+
+% Obstacles
 for i = 1:n_obs
-    fill(obs(i,1)+R_obs*cos(theta_c), obs(i,2)+R_obs*sin(theta_c), ...
-         [0.8 0.2 0.2], 'EdgeColor','k');
+    fill(obs(i,1) + R_obs*cos(theta_c), ...
+         obs(i,2) + R_obs*sin(theta_c), ...
+         [0.8 0.2 0.2], ...
+         'EdgeColor','k');
 end
 
-plot(0, 0, 'gs', 'MarkerSize',12, 'MarkerFaceColor','g', 'DisplayName','Départ');
-plot(xt, yt, 'p', 'MarkerSize',16, 'MarkerFaceColor','y', ...
-     'MarkerEdgeColor','k', 'DisplayName','Cible');
-plot(X_sol(1,:), X_sol(2,:), 'b-', 'LineWidth', 2, 'DisplayName','Trajectoire');
+% Départ et cible
+plot(0, 0, 'gs', ...
+     'MarkerSize', 12, ...
+     'MarkerFaceColor', 'g', ...
+     'DisplayName', 'Départ');
 
+plot(xt, yt, 'p', ...
+     'MarkerSize', 16, ...
+     'MarkerFaceColor', 'y', ...
+     'MarkerEdgeColor', 'k', ...
+     'DisplayName', 'Cible');
+
+% Trajectoire idéale issue de la collocation
+plot(X_sol(1,:), X_sol(2,:), ...
+     'b-', 'LineWidth', 2, ...
+     'DisplayName', 'Trajectoire idéale (collocation)');
+
+% Commandes idéales interpolées
+t_u = t_sol(1:end-1);
+
+T_cmd_opt = @(t) interp1(t_u, U_sol(1,:), t, 'previous', 'extrap');
+theta_cmd_opt = @(t) interp1(t_u, U_sol(2,:), t, 'previous', 'extrap');
+
+% Simulation de la trajectoire réelle avec la dynamique
+x0_real = [0; 0; pi/4; 0; 0; 0];
+
+ode_fun_real = @(t,x) dyn2(x, ...
+    [T_cmd_opt(t), theta_cmd_opt(t)], params);
+
+options_real = odeset('RelTol', 1e-6, 'AbsTol', 1e-8);
+
+[t_real, x_real] = ode45(ode_fun_real, [0 Tf_sol], x0_real, options_real);
+
+% Trajectoire réelle
+plot(x_real(:,1), x_real(:,2), ...
+     'r-', 'LineWidth', 2, ...
+     'DisplayName', 'Trajectoire réelle');
+
+% Direction de la vitesse - trajectoire idéale
 n_arr = 15;
-idx   = round(linspace(1, N+1, n_arr));
-beta_sol = X_sol(3,:) + X_sol(4,:);
+idx = round(linspace(1, N+1, n_arr));
+
 V_sol = sqrt(X_sol(4,idx).^2 + X_sol(5,idx).^2);
+
 quiver(X_sol(1,idx), X_sol(2,idx), ...
-       0.4*X_sol(4,idx)./V_sol, 0.4*X_sol(5,idx)./V_sol, ...
-       0, 'k', 'DisplayName','Direction vitesse');
+       0.4 * X_sol(4,idx)./V_sol, ...
+       0.4 * X_sol(5,idx)./V_sol, ...
+       0, 'k', ...
+       'HandleVisibility', 'off');
+
+% Direction de la vitesse - trajectoire réelle
+idx_real = round(linspace(1, length(t_real), n_arr));
+
+V_real = sqrt(x_real(idx_real,4).^2 + x_real(idx_real,5).^2);
+
+quiver(x_real(idx_real,1), x_real(idx_real,2), ...
+       0.4 * x_real(idx_real,4)./V_real, ...
+       0.4 * x_real(idx_real,5)./V_real, ...
+       0, ...
+       'Color', [0.8500 0.3250 0.0980], ...
+       'HandleVisibility', 'off');
+
 %legend('Location','northwest');
 
-%% Figure 2 : Etats
+%% --- Figure 2 : Etats idéale vs réels ---
+
 figure('Name', 'États');
 
-% vitesse longi
+% Etats idéaux interpolés sur le temps réel
+phi_ideal = interp1(t_sol, X_sol(3,:), t_real, 'linear', 'extrap');
+vx_ideal  = interp1(t_sol, X_sol(4,:), t_real, 'linear', 'extrap');
+vy_ideal  = interp1(t_sol, X_sol(5,:), t_real, 'linear', 'extrap');
+r_ideal   = interp1(t_sol, X_sol(6,:), t_real, 'linear', 'extrap');
+
+% Vitesse
+v_ideal = sqrt(vx_ideal.^2 + vy_ideal.^2);
+v_real  = sqrt(x_real(:,4).^2 + x_real(:,5).^2);
+
+% Angle d'attaque
+alpha_ideal = atan2(vy_ideal, vx_ideal) - phi_ideal;
+alpha_real  = atan2(x_real(:,5), x_real(:,4)) - x_real(:,3);
+
+% Cap
 subplot(4,1,1);
-plot(t_sol, sqrt(X_sol(4,:).^2+X_sol(5,:).^2), 'b', 'LineWidth', 1.5);
-ylabel('v (m/s)'); grid on; title('Vitesse longitudinale');
+plot(t_real, rad2deg(phi_ideal), 'b', 'LineWidth', 1.5, ...
+     'DisplayName', 'Idéal');
+hold on;
+plot(t_real, rad2deg(x_real(:,3)), 'r', 'LineWidth', 1.5, ...
+     'DisplayName', 'Réel');
+ylabel('\phi (°)');
+grid on;
+title('Cap');
+legend('Location','best');
 
-% cap
+% Angle d'incidence
 subplot(4,1,2);
-plot(t_sol, rad2deg(X_sol(3,:)), 'r', 'LineWidth', 1.5);
-ylabel('\phi (°)'); grid on; title('Cap');
+plot(t_real, rad2deg(alpha_ideal), 'b', 'LineWidth', 1.5);
+hold on;
+plot(t_real, rad2deg(alpha_real), 'r', 'LineWidth', 1.5);
+ylabel('\alpha (°)');
+grid on;
+title('Angle d''attaque');
 
-% angle d'incidence
+% Vitesse
 subplot(4,1,3);
-plot(t_sol, rad2deg(atan2(X_sol(5,:), X_sol(4,:))-X_sol(3,:)), 'g', 'LineWidth', 1.5);
-ylabel('\alpha (°)'); grid on; title('Angle d attaque');
+plot(t_real, v_ideal, 'b', 'LineWidth', 1.5);
+hold on;
+plot(t_real, v_real, 'r', 'LineWidth', 1.5);
+ylabel('v (m/s)');
+grid on;
+title('Vitesse longitudinale');
 
-% vitesse de lacet
+% Vitesse de lacet
 subplot(4,1,4);
-plot(t_sol, X_sol(6,:), 'm', 'LineWidth', 1.5);
-ylabel('r (rad/s)'); grid on; title('Vitesse de lacet');
+plot(t_real, r_ideal, 'b', 'LineWidth', 1.5);
+hold on;
+plot(t_real, x_real(:,6), 'r', 'LineWidth', 1.5);
+ylabel('r (rad/s)');
+grid on;
+title('Vitesse de lacet');
 xlabel('t (s)');
 
 %% Figure 3 : Commandes

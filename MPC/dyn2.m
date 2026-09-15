@@ -2,8 +2,6 @@ function dxdt = dyn2(X, U, params)
 % Modèle en repère cartésien : X = [x, y, phi, vx, vy, r]
 % U = [T, theta]
 
-x   = X(1);
-y   = X(2);
 phi = X(3);
 vx  = X(4);
 vy  = X(5);
@@ -13,7 +11,6 @@ T     = U(1);
 theta = U(2);
 
 m   = params(1);
-f   = params(2);
 Yg  = params(3);
 I   = params(4);
 Lg  = params(5);

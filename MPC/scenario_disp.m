@@ -7,7 +7,7 @@ scenario_random
 
 % --- Figure ---
 figure; hold on; axis equal; grid on;
-xlim([-1, 12]); ylim([-1, 12]);
+xlim([-1, 52]); ylim([-1, 52]);
 xlabel('x (m)'); ylabel('y (m)');
 title('Zone de navigation — Bateau 2D');
 
