@@ -7,16 +7,19 @@
 %
 %  Dépendances : init_params.m, scenario_random.m  (inchangés)
 
-clear; clc; close all;
+%clear; clc; close all;
 
 init_params
-scenario_random
+scenario
 
 %% =========================================================
 %% 1. Paramètres du planificateur
 %% =========================================================
 
-n       = 5;      % Degré polynomial (min 5 pour 4 BC positions + marge)
+Tf   = 30;    % Durée de la manœuvre [s] — à ajuster
+n    = 7;     % Degré polynomial (min 7 pour 4 conditions × 2 axes + dérivées)
+              % feedforward3 requiert jusqu'à d³x/dt³ → min degré 5,
+              % mais 7 recommandé pour avoir de la liberté d'évitement
 Nc      = 150;    % Points de collocation — contraintes obstacles
 Ns      = 500;    % Résolution de la trajectoire de sortie
 
@@ -44,9 +47,9 @@ scale    = dist_ref / 2;
 %   Toutes les fonctions acceptent s scalaire ou colonne (Ns×1).
 %   Retour : matrice (numel(s) × n+1)
 
-B   = @(s) s .^ (0:n);
-Bd  = @(s) [ zeros(numel(s),1),   s.^(0:n-1)  .* (1:n)           ];
-Bdd = @(s) [ zeros(numel(s),2),   s.^(0:n-2)  .* ((2:n).*(1:n-1)) ];
+B   = @(t) t .^ (0:n);                                         % (Nt x n+1)
+Bd  = @(t) [zeros(numel(t),1), t.^(0:n-1) .* (1:n)          ]; % dx/dt
+Bdd = @(t) [zeros(numel(t),2), t.^(0:n-2) .* ((2:n).*(1:n-1))];% ddx/dt2
 
 %% ========================================================
 % 3. Matrice de Gram — terme quadratique ∫₀¹ ||p''||² ds
@@ -62,9 +65,11 @@ Bdd = @(s) [ zeros(numel(s),2),   s.^(0:n-2)  .* ((2:n).*(1:n-1)) ];
 Q_dd = zeros(n+1);
 for i = 3:n+1
     for j = 3:n+1
-        Q_dd(i,j) = (i-1)*(i-2)*(j-1)*(j-2) / (i+j-5);
+        Q_dd(i,j) = (i-1)*(i-2)*(j-1)*(j-2) * Tf^(i+j-5) / (i+j-5);
     end
 end
+H_quad = lambda1 * blkdiag(Q_dd, Q_dd);
+
 
 % H_quad est symétrique définie positive (les entrées non nulles forment
 % un bloc plein dans le coin inférieur-droit de Q_dd)
@@ -74,37 +79,34 @@ H_quad = lambda1 * blkdiag(Q_dd, Q_dd);   % (2(n+1) × 2(n+1))
 % 4. Contraintes d'égalité — conditions aux limites
 % =========================================================
 %
-%   w = [a_x (n+1×1) ; a_y (n+1×1)]
-%   Aeq * w = beq
+%  feedforward3 utilise dx/dt, dy/dt → imposer la vitesse initiale
+%  cohérente avec u_ref = V = sqrt(dx2+dy2) et phi_ref = atan2(dy,dx)
+%
+%  Choix : vitesse initiale u0 selon le cap phi0
 
 xs = start_pos(1);  ys = start_pos(2);
 xt = target_pos(1); yt = target_pos(2);
 
-B0  = B(0);    B1  = B(1);
-Bd0 = Bd(0);   Bd1 = Bd(1);
-O   = zeros(1, n+1);   % bloc nul pour séparer les axes x et y
+u0     = 2.0;    % [m/s] vitesse de croisière initiale — à caler sur le LQR
+u_f    = 2.0;    % [m/s] vitesse finale souhaitée
 
-if impose_tangents
-    % 8 équations : position + tangente aux deux extrémités
-    % Tangente imposée : p'(0) = scale·[cos φ₀, sin φ₀]ᵀ
-    %                   p'(1) = scale·[cos φ_f, sin φ_f]ᵀ
-    Aeq = [ B0,   O  ;    % x(0) = xs
-            B1,   O  ;    % x(1) = xt
-            O,    B0 ;    % y(0) = ys
-            O,    B1 ;    % y(1) = yt
-            Bd0,  O  ;    % x'(0) = scale·cos φ₀
-            O,    Bd0;    % y'(0) = scale·sin φ₀
-            Bd1,  O  ;    % x'(1) = scale·cos φ_f
-            O,    Bd1 ];  % y'(1) = scale·sin φ_f
+dx0 = u0 * cos(phi0);   dy0 = u0 * sin(phi0);
+dxf = u_f * cos(phi_f); dyf = u_f * sin(phi_f);
 
-    beq = [ xs; xt; ys; yt;
-            scale*cos(phi0); scale*sin(phi0);
-            scale*cos(phi_f); scale*sin(phi_f) ];
-else
-    % 4 équations : positions uniquement
-    Aeq = [ B0, O; B1, O; O, B0; O, B1 ];
-    beq = [ xs; xt; ys; yt ];
-end
+B0  = B(0);    BTf = B(Tf);
+Bd0 = Bd(0);   BdTf = Bd(Tf);
+O   = zeros(1, n+1);
+
+Aeq = [ B0,   O  ;
+        BTf,  O  ;
+        O,    B0 ;
+        O,    BTf;
+        Bd0,  O  ;
+        O,    Bd0;
+        BdTf, O  ;
+        O,    BdTf];
+
+beq = [xs; xt; ys; yt; dx0; dy0; dxf; dyf];
 
 %% ========================================================
 % 5. Contraintes non linéaires — évitement d'obstacles
@@ -116,17 +118,16 @@ end
 %   Nc points × n_obs obstacles = Nc·n_obs inégalités
 %   Implémentation vectorisée : dx (Nc × n_obs) par broadcasting
 
-s_col   = linspace(0, 1, Nc)';
+t_col   = linspace(0, Tf, Nc)';
 r_safe2 = (R_obs + ecart)^2;
-
-nonlcon = @(w) obs_avoid(w, n, s_col, B, obs, n_obs, r_safe2);
+nonlcon = @(w) obs_avoid(w, n, t_col, B, obs, n_obs, r_safe2);
 
 %% ========================================================
 % 6. Critère d'optimisation (handle)
 % =========================================================
-s_int = linspace(0, 1, 300)';   % grille d'intégration (règle des trapèzes)
+t_int = linspace(0, Tf, 300)';  % grille d'intégration (règle des trapèzes)
 
-obj = @(w) eval_cost(w, n, H_quad, lambda2, s_int, Bd, Bdd);
+obj   = @(w) eval_cost(w, n, H_quad, lambda2, t_int, Bd, Bdd);
 
 %% ========================================================
 % 7. Point initial — projection sur les contraintes d'égalité
@@ -137,13 +138,11 @@ obj = @(w) eval_cost(w, n, H_quad, lambda2, s_int, Bd, Bdd);
 %      → min ||w - w_line||² s.t. Aeq·w = beq
 %      → solution : w₀ = w_line + Aeq'·(Aeq·Aeq')⁻¹·(beq - Aeq·w_line)
 
-s_fit = linspace(0, 1, 50)';
-Bmat  = B(s_fit);
-ax0   = Bmat \ (xs + s_fit*(xt - xs));
-ay0   = Bmat \ (ys + s_fit*(yt - ys));
+t_fit = linspace(0, Tf, 50)';
+Bmat  = B(t_fit);
+ax0   = Bmat \ (xs + (t_fit/Tf)*(xt - xs));
+ay0   = Bmat \ (ys + (t_fit/Tf)*(yt - ys));
 w_line = [ax0; ay0];
-
-% Projection (garantit que le point initial satisfait les BC)
 w0 = w_line + Aeq' * ((Aeq*Aeq') \ (beq - Aeq*w_line));
 
 %% ========================================================
@@ -178,79 +177,19 @@ end
 %% ========================================================
 % 9. Extraction de la trajectoire de référence
 % =========================================================
-s_ref  = linspace(0, 1, Ns)';
 ax_sol = w_sol(1:n+1);
 ay_sol = w_sol(n+2:end);
 
-Bs    = B(s_ref);    Bds   = Bd(s_ref);    Bdds  = Bdd(s_ref);
+% flip : croissant → décroissant (convention polyval/polyder MATLAB)
+p_x = flip(ax_sol)';   % (1 × n+1), ordre décroissant
+p_y = flip(ay_sol)';
 
-x_ref   = Bs   * ax_sol;   xd_ref  = Bds  * ax_sol;   xdd_ref = Bdds * ax_sol;
-y_ref   = Bs   * ay_sol;   yd_ref  = Bds  * ay_sol;   ydd_ref = Bdds * ay_sol;
+p_traj = [p_x; p_y];  % (2 × n+1) — format attendu par trajectory.m
 
-% Courbure géométrique κ(s) = (x'y'' - y'x'') / ||p'||³
-denom_k   = (xd_ref.^2 + yd_ref.^2).^(3/2) + 1e-10;   % régularisation
-kappa_ref = (xd_ref .* ydd_ref - yd_ref .* xdd_ref) ./ denom_k;
-
-% Cap tangentiel φ_ref(s) — utile pour l'initialisation du feedforward
-phi_ref = atan2(yd_ref, xd_ref);
-
-%% ========================================================
-% 10. Vérification post-optimisation
-% =========================================================
-min_dist = inf;
-for i = 1:n_obs
-    d = min(sqrt((x_ref - obs(i,1)).^2 + (y_ref - obs(i,2)).^2));
-    min_dist = min(min_dist, d);
-end
-long_approx = trapz(s_ref, sqrt(xd_ref.^2 + yd_ref.^2));
-
-fprintf('Longueur approx.             : %.2f m\n',   long_approx);
-fprintf('Courbure max |κ|             : %.4f m⁻¹\n', max(abs(kappa_ref)));
-fprintf('Distance min aux obstacles   : %.4f m\n',   min_dist);
-fprintf('Marge requise (R+écart)      : %.4f m\n',   sqrt(r_safe2));
-
-%% ========================================================
-% 11. Visualisation
-% =========================================================
-theta_c = linspace(0, 2*pi, 100);
-
-figure(1); hold on; axis equal; grid on;
-xlim([-1, 52]); ylim([-1, 52]);
-xlabel('x (m)'); ylabel('y (m)');
-title(sprintf('Trajectoire polynomiale  n=%d  |  J=%.3f', n, J_sol));
-
-for i = 1:n_obs
-    fill(obs(i,1) + (R_obs+ecart)*cos(theta_c), ...
-         obs(i,2) + (R_obs+ecart)*sin(theta_c), ...
-         [1.0 0.8 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
-    fill(obs(i,1) + R_obs*cos(theta_c), ...
-         obs(i,2) + R_obs*sin(theta_c), ...
-         [0.8 0.2 0.2], 'EdgeColor', 'k');
-end
-
-plot(x_ref, y_ref, 'b-',  'LineWidth', 2.5, 'DisplayName', 'Trajectoire ref');
-plot(xs, ys, 'gs', 'MarkerSize', 12, 'MarkerFaceColor', 'g', 'DisplayName', 'Départ');
-plot(xt, yt, 'p',  'MarkerSize', 16, 'MarkerFaceColor', 'y', ...
-    'MarkerEdgeColor', 'k', 'DisplayName', 'Cible');
-quiver(xs, ys, cos(phi0), sin(phi0), 0.8, 'g', 'LineWidth', 2, ...
-    'DisplayName', 'Cap \phi_0');
-legend('Location', 'northwest');
-
-figure(2);
-subplot(3,1,1);
-plot(s_ref, x_ref, 'b', s_ref, y_ref, 'r', 'LineWidth', 1.5);
-legend('x_{ref}', 'y_{ref}'); ylabel('Position (m)'); grid on;
-title('Composantes de la trajectoire de référence');
-
-subplot(3,1,2);
-plot(s_ref, rad2deg(phi_ref), 'm', 'LineWidth', 1.5);
-ylabel('\phi_{ref} (°)'); grid on; title('Cap tangentiel');
-
-subplot(3,1,3);
-plot(s_ref, kappa_ref, 'k', 'LineWidth', 1.5);
-yline(0, '--', 'Color', [0.5 0.5 0.5]);
-ylabel('\kappa (m^{-1})'); xlabel('s'); grid on;
-title('Courbure géométrique');
+% Vérification
+t_ref  = linspace(0, Tf, Ns)';
+x_ref  = polyval(p_x, t_ref);
+y_ref  = polyval(p_y, t_ref);
 
 %% ========================================================
 % Fonctions locales

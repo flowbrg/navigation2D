@@ -4,19 +4,17 @@
 
 clear; clc; close all;
 
-init_params
 init_lqr
-
-scenario_random
+poly_traj_opt
 
 %% Conditions initiales
 % [x, y, phi, u, v, r)
 x0 = [0; 0; pi/4; 1e-2; 0; 0];    % Cap initial de 45°, vers la cible
 
 % Intégration ode45, explicit runge-kutta
-t_span          = [0,20];
+t_span          = [0,Tf];
 
-p_traj = [x_sce; y_sce];
+p_traj = [x_ref; y_ref];
 
 ode_fun         = @(t,x) closed_loop3(t, x, params, K, p_traj);
 options         = odeset('RelTol', 1e-6, 'AbsTol', 1e-8);
@@ -31,8 +29,6 @@ figure(1); hold on; axis equal; grid on;
 
 xlabel('x (m)'); ylabel('y (m)');
 plot(x_sol(:,1), x_sol(:,2), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectoire');
-plot(polyval(x_sce, t_sol), polyval(y_sce, t_sol), 'r', 'LineWidth', 2, 'DisplayName', 'Reference');
-
 
 % Orientation de la vitesse
 n_arrows = 15;  % Nombre de flèches
