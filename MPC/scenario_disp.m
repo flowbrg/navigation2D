@@ -3,7 +3,8 @@ clear; clc; close all;
 
 init_params
 
-scenario_random
+%scenario_random
+scenario
 
 % --- Figure ---
 figure; hold on; axis equal; grid on;

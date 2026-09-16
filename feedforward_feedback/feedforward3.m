@@ -12,7 +12,6 @@ S   = params(7);
 Fx  = params(8);
 
 V_min   = 1e-2;     % Saturation vitesse pour atan2
-theta_max = pi/3;   % Saturation angle de gouverne, limite physique pi/2
 
 % Derivees de x_r et y_r
 x_ref = sigma_r(1);
@@ -26,7 +25,7 @@ dddy  = sigma_r(8);
 
 % Vitesse
 V2  = dx^2 + dy^2;
-V   = sqrt(U2);
+V   = sqrt(V2);
 V   = max(V, V_min);
 
 % Etats de reference

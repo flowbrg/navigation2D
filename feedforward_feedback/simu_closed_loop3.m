@@ -16,6 +16,8 @@ x0 = [0; 0; pi/4; 1e-2; 0; 0];    % Cap initial de 45°, vers la cible
 % Intégration ode45, explicit runge-kutta
 t_span          = [0,20];
 
+p_traj = [x_sce; y_sce];
+
 ode_fun         = @(t,x) closed_loop3(t, x, params, K, p_traj);
 options         = odeset('RelTol', 1e-6, 'AbsTol', 1e-8);
 [t_sol, x_sol]  = ode45(ode_fun, t_span, x0, options);
@@ -29,6 +31,8 @@ figure(1); hold on; axis equal; grid on;
 
 xlabel('x (m)'); ylabel('y (m)');
 plot(x_sol(:,1), x_sol(:,2), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectoire');
+plot(polyval(x_sce, t_sol), polyval(y_sce, t_sol), 'r', 'LineWidth', 2, 'DisplayName', 'Reference');
+
 
 % Orientation de la vitesse
 n_arrows = 15;  % Nombre de flèches

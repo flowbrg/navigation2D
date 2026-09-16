@@ -1,4 +1,4 @@
-function U = controller(X, sigma_r,params)
+function U = controller(X, sigma_r, K, params)
 
 % Saturations
 T_max     = 700;
@@ -7,7 +7,7 @@ theta_max = pi/3;
 % Feedforward
 [U_ff, X_ref] = feedforward3(sigma_r, params);
 
-[dT, dtheta]  = feedback3(X, X_ref, params);
+[dT, dtheta]  = feedback3(X, X_ref, K);
 
 T_ff = U_ff(1);
 theta_ff = U_ff(2);

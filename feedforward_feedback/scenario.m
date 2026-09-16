@@ -9,7 +9,7 @@ target_pos = [50, 50];
 N=12;
 
 % Centres des obstacles
-obs = 5*ones(N,2) + 40 * rand(N, 2);
+obs = [30 30; 25 25];
 n_obs = N;
 
 %% Signaux de commande
