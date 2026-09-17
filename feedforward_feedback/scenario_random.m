@@ -6,7 +6,7 @@ ecart = 1;    % distance de sécurité aux obstacles
 start_pos  = [0, 0];
 target_pos = [50, 50];
 
-N=10;
+N=8;
 
 % Centres des obstacles
 obs = 5*ones(N,2) + 40 * rand(N, 2);

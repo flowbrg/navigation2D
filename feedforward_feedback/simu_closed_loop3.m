@@ -64,18 +64,22 @@ ylabel('r (rad/s)'); grid on; title('Vitesse de lacet');
 xlabel('t (s)');
 
 %% Niveau 2 - Virage à courbe constante
-R = 30; Tf = 100; u0 = 5;
-t_fit = linspace(0, Tf, 50);
-x_fit = R*sin(t_fit/R);
-y_fit = R*(1-cos(t_fit/R));
-p_x = polyfit(t_fit, x_fit, 5);
-p_y = polyfit(t_fit, y_fit, 5);
+Tf = 30; u0 = 2;
+p_x = [u0, 0];          % x(t) = u0*t
+p_y = [-0.0005, 0.01, 0, 0];     % y(t) = 0.01*t^2  — courbure constante faible
 X0 = [0; 0; 0; u0; 0; 0];
 
 traj_fun = make_trajectory(p_x, p_y, Tf);
 ode_fun  = @(t,X) closed_loop3(X, traj_fun(t), K, params);
 options  = odeset('RelTol', 1e-6, 'AbsTol', 1e-8);
 [t_sol, X_sol] = ode45(ode_fun, [0, Tf], X0, options);
+
+U_log = zeros(length(t_sol), 2);
+for k = 1:length(t_sol)
+    U_log(k,:) = controller(X_sol(k,:)', traj_fun(t_sol(k)), K, params);
+end
+T_log     = U_log(:,1);
+theta_log = U_log(:,2);
 
 % Figure T2 : Trajectoire
 figure('Name', 'T2 - Trajectoire'); hold on; axis equal; grid on;
@@ -120,6 +124,19 @@ subplot(4,1,4);
 plot(t_sol, X_sol(:,6), 'm', 'LineWidth', 1.5);
 ylabel('r (rad/s)'); grid on; title('Vitesse de lacet');
 xlabel('t (s)');
+
+% Figure T2 : Commandes
+figure('Name', 'T2 - Commandes');
+
+% poussee
+subplot(2,1,1);
+plot(t_sol, T_log, 'b', 'LineWidth', 1.5);
+ylabel('\phi (°)'); grid on; title('Poussée');
+
+% angle de gouverne
+subplot(2,1,2);
+plot(t_sol, theta_log, 'r', 'LineWidth', 1.5);
+ylabel('\alpha (°)'); grid on; title("Angle de gouverne");
 
 %% Niveau 3 - Virage à courbe constante
 X0 = [0; 0.5; deg2rad(10); u0*0.8; 0; 0];
