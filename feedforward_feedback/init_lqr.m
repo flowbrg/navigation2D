@@ -23,7 +23,7 @@ A_lon = [0,  1;
 B_lon = [0; 1/m];
 
 Q_lon = diag([1/4, 1/4]);
-R_lon = (1/200)^2;
+R_lon = (1/700)^2;
 
 K_lon = lqr(A_lon, B_lon, Q_lon, R_lon);
 
