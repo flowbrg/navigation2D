@@ -4,24 +4,19 @@
 
 clear; clc; close all;
 
-init_params
-init_lqr
-scenario_random
-%calc_traj
-poly_traj_opt_t
+init_params     % Init boat parameters
+init_lqr        % Init lqr gain
+scenario_random % Create a random scenario
+poly_calc_traj  % 
 
 %% Trajectoire
-%Tf = traj_ref.Tf;
 u0 = 1;
-%p_x = traj_ref.cx;
-%p_y = traj_ref.cy;
-
 traj_fun = make_trajectory(p_x, p_y, Tf*1.1); % [x_ref, y_ref, dx_ref,... ]
 
-
-% Initialisation du bateau à la bonne
+% X0 = [x, y, phi, u, v, r, ksi]
 X0 = [0; 0; pi/4; u0; 0; 0; 0];
 
+% Runge-Kutta
 ode_fun  = @(t,X) closed_loop3(X, traj_fun(t), K, params);
 options  = odeset('RelTol', 1e-6, 'AbsTol', 1e-8);
 [t_sol, X_sol] = ode45(ode_fun, [0, Tf], X0, options);
@@ -43,7 +38,9 @@ for i = 1:n_obs
 end
 
 xlabel('x (m)'); ylabel('y (m)');
+% Real trajectory
 plot(X_sol(:,1), X_sol(:,2), 'b-', 'LineWidth', 2, 'DisplayName', 'Trajectoire');
+% Reference
 plot(polyval(p_x, t_sol), polyval(p_y, t_sol), 'r-', 'LineWidth', 2, 'DisplayName', 'Référence');
 
 plot(xs, ys, 'gs', 'MarkerSize', 12, 'MarkerFaceColor', 'g', 'DisplayName', 'Départ');
