@@ -12,7 +12,7 @@ init_lqr
 Tf = 20; u0 = 3;
 p_x = [u0, 0]; % x(t) = u0*t
 p_y = [0, 0];  % y(t) = 0
-X0 = [0; 0; 0; u0; 0; 0];
+X0 = [0; 0; 0; u0; 0; 0; 0];
 
 traj_fun = make_trajectory(p_x, p_y, Tf); % [x_ref, y_ref, dx_ref,... ]
 ode_fun  = @(t,X) closed_loop3(X, traj_fun(t), K, params);
@@ -64,10 +64,10 @@ ylabel('r (rad/s)'); grid on; title('Vitesse de lacet');
 xlabel('t (s)');
 
 %% Niveau 2 - Virage à courbe constante
-Tf = 30; u0 = 2;
+Tf = 50; u0 = 2;
 p_x = [u0, 0];          % x(t) = u0*t
 p_y = [-0.0005, 0.01, 0, 0];     % y(t) = 0.01*t^2  — courbure constante faible
-X0 = [0; 0; 0; u0; 0; 0];
+X0 = [0; 0; 0; u0; 0; 0; 0];
 
 traj_fun = make_trajectory(p_x, p_y, Tf);
 ode_fun  = @(t,X) closed_loop3(X, traj_fun(t), K, params);
@@ -139,7 +139,7 @@ plot(t_sol, theta_log, 'r', 'LineWidth', 1.5);
 ylabel('\alpha (°)'); grid on; title("Angle de gouverne");
 
 %% Niveau 3 - Virage à courbe constante
-X0 = [0; 0.5; deg2rad(10); u0*0.8; 0; 0];
+X0 = [0; 0.5; deg2rad(10); u0*0.8; 0; 0; 0];
 
 traj_fun = make_trajectory(p_x, p_y, Tf);
 ode_fun  = @(t,X) closed_loop3(X, traj_fun(t), K, params);

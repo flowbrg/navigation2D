@@ -34,7 +34,7 @@ A_lat = [0,  u0,   1,    0;
     0,   0, br/Lg, -ar];
 B_lat = [0;   0;   bv;  -br];
 
-Q_lat = diag([1, (6/pi)^2, 1, 1/0.09]);
+Q_lat = diag([1/8, (6/pi)^2, 1, 1/0.09]);
 R_lat = (6/pi)^2;   % = 1/(pi/6)^2
 
 K_lat = lqr(A_lat, B_lat, Q_lat, R_lat);
