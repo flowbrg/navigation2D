@@ -4,7 +4,7 @@
 
 clear; clc; close all;
 
-init_params
+load("params.mat")
 
 %% Conditions initiales
 % [x, y, phi, u, v, r)
@@ -94,9 +94,9 @@ figure('Name', 'Commandes');
 
 subplot(2,1,1);
 plot(t_sol, T_sol, 'b', 'LineWidth', 1.5);
-ylabel('T (N)'); grid on; title('Poussée — échelon');
+ylabel('T (N)'); grid on; title('Poussée - échelon');
 
 subplot(2,1,2);
 plot(t_sol, rad2deg(theta_sol), 'r', 'LineWidth', 1.5);
-ylabel('\theta (rad)'); grid on; title('Angle de gouverne — trapèze');
+ylabel('\theta (rad)'); grid on; title('Angle de gouverne');
 xlabel('t (s)');

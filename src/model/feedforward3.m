@@ -3,13 +3,13 @@ function [U_ff, X_ref] = feedforward3(sigma_r, params)
 % H1 : alpha ~ 0
 % H2 : theta << 1
 
-m   = params(1);
-Yg  = params(3);
-I   = params(4);
-Lg  = params(5);
-rho = params(6);
-S   = params(7);
-Fx  = params(8);
+m   = params.m;
+Yg  = params.Yg;
+I   = params.I;
+Lg  = params.Lg;
+rho = params.rho;
+S   = params.S;
+Fx  = params.Fx;
 
 V_min   = 1e-2;     % Saturation vitesse pour atan2
 

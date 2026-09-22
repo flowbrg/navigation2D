@@ -1,27 +1,26 @@
 function dxdt = dyn3(X, U, params)
-% Modèle en repère corps : X = [x, y, phi, u, v, r]
+% Modele en repere corps : X = [x, y, phi, u, v, r]
 % U = [T, theta]
-% Forces exprimées dans Rb
+% Forces exprimees dans Rb
 
 x   = X(1);
 y   = X(2);
 phi = X(3);
 u   = X(4);   % vitesse longitudinale dans Rb
-v   = X(5);   % vitesse latérale dans Rb
+v   = X(5);   % vitesse laterale dans Rb
 r   = X(6);   % vitesse de lacet
 
 T     = U(1);
 theta = U(2);
 
-m   = params(1);
-%f   = params(2);
-Yg  = params(3);
-I   = params(4);
-Lg  = params(5);
-rho = params(6);
-S   = params(7);
-Fx  = params(8);
-Fy  = params(9);
+m   = params.m;
+Yg  = params.Yg;
+I   = params.I;
+Lg  = params.Lg;
+rho = params.rho;
+S   = params.S;
+Fx  = params.Fx;
+Fy  = params.Fy;
 
 % Angles
 alpha = atan2(v, u);   % angle d'incidence sur le bateau

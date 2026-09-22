@@ -4,17 +4,18 @@
 
 clear; clc; close all;
 
-init_params     % Init boat parameters
-init_lqr        % Init lqr gain
-scenario_random % Create a random scenario
-poly_calc_traj  % 
+load("./data/params.mat")          % Init boat parameters
+load("./data/lqr.mat")             % Init lqr gain
+load("./data/scenario.mat")        % Create a random scenario
+addpath("./model/")
+poly_calc_traj
 
 %% Trajectoire
 u0 = 1;
 traj_fun = make_trajectory(p_x, p_y, Tf*1.1); % [x_ref, y_ref, dx_ref,... ]
 
-% X0 = [x, y, phi, u, v, r, ksi]
-X0 = [0; 0; pi/4; u0; 0; 0; 0];
+% X0 = [x, y, phi, u, v, r]
+X0 = [0; 0; pi/4; u0; 0; 0];
 
 % Runge-Kutta
 ode_fun  = @(t,X) closed_loop3(X, traj_fun(t), K, params);
@@ -28,12 +29,12 @@ theta_c = linspace(0, 2*pi, 100);
 figure('Name', 'T1 - Trajectoire'); hold on; axis equal; grid on;
 %xlim([-15, 15]); ylim([-15, 6]);
 
-for i = 1:n_obs
-    fill(obs(i,1) + (R_obs+ecart)*cos(theta_c), ...
-        obs(i,2) + (R_obs+ecart)*sin(theta_c), ...
+for i = 1:scen.n_obs
+    fill(scen.obs(i,1) + (scen.r_obs+scen.ecart)*cos(theta_c), ...
+        scen.obs(i,2) + (scen.r_obs+scen.ecart)*sin(theta_c), ...
         [1.0 0.8 0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.5);
-    fill(obs(i,1) + R_obs*cos(theta_c), ...
-        obs(i,2) + R_obs*sin(theta_c), ...
+    fill(scen.obs(i,1) + scen.r_obs*cos(theta_c), ...
+        scen.obs(i,2) + scen.r_obs*sin(theta_c), ...
         [0.8 0.2 0.2], 'EdgeColor', 'k');
 end
 

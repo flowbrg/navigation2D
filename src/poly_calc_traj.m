@@ -4,7 +4,7 @@
 % Solveur  : fmincon / SQP
 
 %clear; clc; close all;
-%init_params; scenario_random;
+
 
 %% 1. Paramètres
 Tf      = 30;       % Durée [s]
@@ -17,10 +17,10 @@ phi0    = pi/4;     % Cap initial [rad]
 phi_f   = pi/4;     % Cap final   [rad]
 u0      = 2.0;      % Vitesse initiale [m/s]
 u_f     = 2.0;      % Vitesse finale   [m/s]
-r_safe  = R_obs + ecart;
+r_safe  = scen.r_obs + scen.ecart;
 
-xs = start_pos(1);  ys = start_pos(2);
-xt = target_pos(1); yt = target_pos(2);
+xs = scen.start_pos(1);  ys = scen.start_pos(2);
+xt = scen.target_pos(1); yt = scen.target_pos(2);
 
 %% 2. Base monomiale et dérivées
 % B(t)   = [1, t, t^2, …, t^n]        →  p(t)   = B(t)·a
@@ -52,7 +52,7 @@ beq = [xs; xt; ys; yt; dx0; dy0; dxf; dyf];
 
 %% 5. Contraintes obstacles et critère
 t_col   = linspace(0, Tf, Nc)';
-nonlcon = @(w) obs_avoid(w, n, t_col, B, obs, r_safe^2);
+nonlcon = @(w) obs_avoid(w, n, t_col, B, scen.obs, r_safe^2);
 
 t_int = linspace(0, Tf, 300)';
 obj   = @(w) eval_cost(w, n, H_quad, lambda2, t_int, Bd, Bdd);

@@ -1,4 +1,4 @@
-function [dT, dtheta, e_n] = feedback3(X, X_ref, K, params)
+function [dT, dtheta] = feedback3(X, X_ref, K)
 
 % Etats de reference
 phi_ref = X_ref(3);
@@ -21,12 +21,10 @@ dphi = X(3) - phi_ref;
 du   = X(4) - u_ref;
 dv   = X(5);
 dr   = X(6) - r_ref;
-dksi = X(7) - 0;
 
-K_lon = K(1:2);
-K_lat = K(3:7);
+[K_lon, K_lat] = eval_K(K,X(4));
 
 dT = -K_lon*[e_l; du];
-dtheta = -K_lat * [e_n; dphi; dv; dr; dksi];
+dtheta = -K_lat * [e_n; dphi; dv; dr];
 
 end
