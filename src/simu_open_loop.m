@@ -4,7 +4,8 @@
 
 clear; clc; close all;
 
-load("params.mat")
+load("./data/params.mat")
+addpath("./model")
 
 %% Conditions initiales
 % [x, y, phi, u, v, r)
@@ -19,15 +20,15 @@ T0  = 500;
 % Montée linéaire de 0 à theta_max entre t1 et t2
 % Palier à theta_max entre t2 et t3
 % Descente linéaire de theta_max à 0 entre t3 et t4
-theta_max   = pi/3;
+theta0   = pi/3;
 t1 = 2; t2 = 4; t3 = 6; t4 = 8;
 
 % Définition des commandes
 T_cmd       = @(t) T0;  % Echelon unitaire
 theta_cmd = @(t) ...
-    (t >= t1 & t < t2)  .* 0.5*theta_max + ...
-    (t >= t2 & t < t3)  .* theta_max + ...
-    (t >= t3 & t <= t4) .* -0.7*theta_max;
+    (t >= t1 & t < t2)  .* 0.5*theta0 + ...
+    (t >= t2 & t < t3)  .* theta0 + ...
+    (t >= t3 & t <= t4) .* -0.7*theta0;
 
 %theta_cmd = @(t) ...
 %    (t >= t1 & t < t2)  .* (theta_max * (t - t1)/(t2 - t1)) + ...
