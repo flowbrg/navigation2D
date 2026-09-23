@@ -7,7 +7,7 @@
 
 
 %% 1. Paramètres
-Tf      = 30;       % Durée [s]
+Tf      = 22;       % Durée [s]
 n       = 5;        % Degré polynomial
 Nc      = 150;      % Points pour contraintes obstacles
 Ns      = 500;      % Résolution trajectoire de sortie

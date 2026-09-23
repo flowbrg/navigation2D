@@ -15,6 +15,6 @@ params.Fy  = f*1e3;    % Coefficient de frottement lateral [kg/m]
 
 % Paramètres descommandes
 params.T_max     = 700;    % Saturation de la poussée [N]
-params.theta_max = pi/2;   % Saturation de l'angle de gouverne [rad]
+params.theta_max = pi/4;   % Saturation de l'angle de gouverne [rad]
 
 save("./params.mat", "params");

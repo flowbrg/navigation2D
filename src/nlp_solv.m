@@ -13,11 +13,11 @@ s = scen;
 addpath("./model")
 
 %% --- Paramètres du NLP ---
-Te_max   = 0.5;   % Resolution temporelle de la simulation [s]
+Te_max   = 0.4;   % Resolution temporelle de la simulation [s]
 Tf_init  = 30;  % initialisation Tf (s)
 Tf_min   = 5;
-Tf_max   = 50;
-N        = Tf_max/Te_max; % nombre d'intervalles
+Tf_max   = 30;
+N        = 50; % nombre d'intervalles
 
 % Bornes commandes
 T_max     = p.T_max;
@@ -27,7 +27,7 @@ u_max     = sqrt(T_max/p.Fx);    % vitesse max theorique = T_max/f
 
 % Matrice de pondération des commandes
 W = eye(2); % T et theta normalises
-Q= 0.01*eye(2);
+Q= diag([0.01 0.01 1/4]);
 
 % Cible
 xt = scen.target_pos(1); yt = scen.target_pos(2);
@@ -80,8 +80,8 @@ a_s = (FT_vec + Fg_vec + Ff_vec)/p.m + [v_s*r_s; -u_s*r_s];
 
 f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
     vertcat( ...
-        u_s, ...
-        v_s, ...
+        cphi*u_s - sphi*v_s, ...
+        sphi*u_s + cphi*v_s, ...
         r_s, ...
         a_s(1), ...
         a_s(2), ...
@@ -103,7 +103,7 @@ for k = 1:N
     xk1 = X(:, k+1);
     uk  = U(:, k);
 
-    zk  = [xk(1)-xt; xk(2)-yt];
+    zk  = [xk(1)-xt; xk(2)-yt; atan2(xk(5),xk(4))-xk(3)];
 
     % Critère : distance à la cible + régularisation
     J = J + (zk'*Q*zk + ...
@@ -133,7 +133,7 @@ for k = 1:N+1
     end
 end
 
-%% --- Conditions aux limites (égalités) ---
+%% Conditions aux limites (égalités)
 % État initial
 g{end+1}    = X(:,1) - [0; 0; pi/4; 0; 0; 0];
 g_lb{end+1} = zeros(6,1);
@@ -144,14 +144,14 @@ g{end+1}    = X(1:2, N+1) - [xt; yt];
 g_lb{end+1} = zeros(2,1);
 g_ub{end+1} = zeros(2,1);
 
-%% --- Assemblage vecteur de décision ---
+% Assemblage vecteur de décision
 %w     = {Tf, reshape(X, [], 1), reshape(U, [], 1)};
 w_vec = vertcat(Tf, vec(X), vec(U)); %vertcat(w{:});
 g_vec = vertcat(g{:});
 g_lb_vec = vertcat(g_lb{:});
 g_ub_vec = vertcat(g_ub{:});
 
-%% --- Bornes sur les variables de décision ---
+%% Bornes sur les variables de décision
 
 % Tf
 w_lb = Tf_min;
@@ -164,44 +164,62 @@ w_lb = [w_lb; repmat(x_lb, N+1, 1)];
 w_ub = [w_ub; repmat(x_ub, N+1, 1)];
 
 % Commandes U : [T, theta] x N
-u_lb = [0;        -theta_max];
-u_ub = [T_max;     theta_max];
+u_lb = [0; -1];
+u_ub = [1;  1];
 w_lb = [w_lb; repmat(u_lb, N, 1)];
 w_ub = [w_ub; repmat(u_ub, N, 1)];
 
-%% --- Point initial ---
-% Interpolation linéaire en position, reste nul
+%% Point initial
+% Commande d'init : poussée constante, gouverne nulle
+uc_init = [0.5; 0];   % [T_norm, theta_norm]
 
-% Vitesse cible estimée (heuristique)
-dist_cible = sqrt(xt^2 + yt^2);
-v_target_init = 1.2 * dist_cible / Tf_init;
+% Fonction d'état avec commande figée (dénormalisée dans f_dyn)
+ode_init = @(t, x) full(f_dyn(x, uc_init));
 
-x_init_traj = zeros(6, N+1);
-for k = 1:N+1
-    s = (k-1)/N;
-    x_init_traj(1,k) = s * xt;
-    x_init_traj(2,k) = s * yt;
-    x_init_traj(3,k) = pi/4;
-    x_init_traj(4,k) = v_target_init * cos(pi/4);
-    x_init_traj(5,k) = v_target_init * sin(pi/4);
+% Cap initial vers la cible
+phi0_init = atan2(yt, xt);
+x0_init   = [0; 0; phi0_init; 1e-2; 0; 0];
 
-end
-u_init = zeros(2, N);
-u_init(1,:) = 0.5;             % poussée initiale modérée
+t_grid = linspace(0, Tf_init, N+1);   % grille NLP
 
-w0 = [Tf_init; reshape(x_init_traj, [], 1); reshape(u_init, [], 1)];
+[~, X_fwd] = ode45(ode_init, t_grid, x0_init, ...
+                   odeset('RelTol',1e-4,'AbsTol',1e-6));
+X_fwd = X_fwd';   % (6 x N+1)
+
+
+s_vec = linspace(0, 1, N+1);
+X_fwd(1,:) = s_vec * xt;
+X_fwd(2,:) = s_vec * yt;
+X_fwd(3,:) = atan2(yt - X_fwd(2,:), xt - X_fwd(1,:));
+X_fwd(3,end) = X_fwd(3,end-1);
+
+u_init        = zeros(2, N);
+u_init(1,:)   = 0.5;   % T_norm
+
+w0 = [Tf_init; reshape(X_fwd, [], 1); reshape(u_init, [], 1)];
 
 %% --- Solveur IPOPT ---
 nlp  = struct('x', w_vec, 'f', J, 'g', g_vec);
 opts = struct();
-opts.ipopt.max_iter        = 2000;
-opts.ipopt.tol             = 1e-6;
-opts.ipopt.print_level     = 5;
-%opts.ipopt.linear_solver = 'ma57';   % robuste, rapide
-%opts.ipopt.mu_strategy        = 'adaptive';   % vs 'monotone' par défaut
-%opts.ipopt.hessian_approximation = 'limited-memory';  % si Hessien exact trop coûteux
-%opts.ipopt.warm_start_init_point = 'yes';     % si résolution séquentielle
-%opts.ipopt.tol                = 1e-4;         % relâcher si 1e-6 inutile
+opts.ipopt.max_iter             = 2000;
+opts.ipopt.tol                  = 1e-5;       % 1e-6 inutile ici, gain ~20% itérations
+opts.ipopt.constr_viol_tol      = 1e-5;
+
+opts.ipopt.nlp_scaling_method   = 'gradient-based';
+
+% Stratégie de barrière : adaptive >> monotone sur NLP non-convexes
+opts.ipopt.mu_strategy          = 'adaptive';
+opts.ipopt.mu_init              = 1e-1;       % barrière initiale plus agressive
+
+% Solveur linéaire
+opts.ipopt.linear_solver        = 'mumps';    % remplacer par 'ma57' si HSL dispo
+opts.ipopt.mumps_pivtol         = 1e-4;       % pivotage plus robuste (défaut 1e-6)
+
+% Reconstruction de Hessien : exact par défaut via CasADi AD
+% N'activez limited-memory QUE si >2000 variables N * (size(X) + size(U))
+% opts.ipopt.hessian_approximation = 'limited-memory';
+
+opts.ipopt.print_level          = 5;
 
 solver = nlpsol('solver', 'ipopt', nlp, opts);
 
