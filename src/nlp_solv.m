@@ -12,7 +12,7 @@ load("data/scenario.mat")
 s = scen;
 addpath("./model")
 
-%% --- Paramètres du NLP ---
+%% Paramètres
 Te_max   = 0.5;   % Resolution temporelle de la simulation [s]
 Tf_init  = 30;  % initialisation Tf (s)
 Tf_min   = 5;
@@ -88,7 +88,7 @@ f_dyn = Function('f_dyn', {x_s, uc_s}, { ...
         (Fg * p.Lg * cos(theta_s) - p.Yg * r_s) / p.I  ...
     )});
 
-%% --- Construction du NLP ---
+%% Construction du NLP  
 
 J    = 0;           % critère
 g    = {};          % contraintes d'égalité (collocation)
@@ -133,7 +133,7 @@ for k = 1:N+1
     end
 end
 
-%% --- Conditions aux limites (égalités) ---
+%% Conditions aux limites (égalités)
 % État initial
 g{end+1}    = X(:,1) - [0; 0; pi/4; 0; 0; 0];
 g_lb{end+1} = zeros(6,1);
@@ -144,33 +144,32 @@ g{end+1}    = X(1:2, N+1) - [xt; yt];
 g_lb{end+1} = zeros(2,1);
 g_ub{end+1} = zeros(2,1);
 
-%% --- Assemblage vecteur de décision ---
+% Assemblage vecteur de décision
 %w     = {Tf, reshape(X, [], 1), reshape(U, [], 1)};
 w_vec = vertcat(Tf, vec(X), vec(U)); %vertcat(w{:});
 g_vec = vertcat(g{:});
 g_lb_vec = vertcat(g_lb{:});
 g_ub_vec = vertcat(g_ub{:});
 
-%% --- Bornes sur les variables de décision ---
+%% Bornes sur les variables de décision
 
 % Tf
 w_lb = Tf_min;
 w_ub = Tf_max;
 
-% États X : [x, y, phi, vx, vy, r] x (N+1)
+% Etats X : [x, y, phi, u, v, r] x (N+1)
 x_lb = [-inf; -inf; -inf; -u_max; -u_max; -inf];
 x_ub = [ inf;  inf;  inf;  u_max; u_max;  inf];
 w_lb = [w_lb; repmat(x_lb, N+1, 1)];
 w_ub = [w_ub; repmat(x_ub, N+1, 1)];
 
-% Commandes U : [T, theta] x N
-u_lb = [0;        -theta_max];
-u_ub = [T_max;     theta_max];
+% Commandes U normalisée: [T, theta] x N
+u_lb = [0; -1]; % [0;    -theta_max];
+u_ub = [1; 1];  % [T_max; theta_max];
 w_lb = [w_lb; repmat(u_lb, N, 1)];
 w_ub = [w_ub; repmat(u_ub, N, 1)];
 
-%% --- Point initial ---
-% Interpolation linéaire en position, reste nul
+%% Point initial
 
 % Vitesse cible estimée (heuristique)
 dist_cible = sqrt(xt^2 + yt^2);
@@ -191,7 +190,7 @@ u_init(1,:) = 0.5;             % poussée initiale modérée
 
 w0 = [Tf_init; reshape(x_init_traj, [], 1); reshape(u_init, [], 1)];
 
-%% --- Solveur IPOPT ---
+%% Solveur IPOPT
 nlp  = struct('x', w_vec, 'f', J, 'g', g_vec);
 opts = struct();
 opts.ipopt.max_iter        = 2000;
@@ -209,7 +208,7 @@ sol = solver('x0',  w0, ...
              'lbx', w_lb, 'ubx', w_ub, ...
              'lbg', g_lb_vec, 'ubg', g_ub_vec);
 
-%% --- Extraction de la solution ---
+%% Extraction de la solution
 w_sol  = full(sol.x);
 
 Tf_sol = w_sol(1);
