@@ -1,4 +1,4 @@
-%% Optimisation de trajectoire — Bateau 2D 
+%% Optimisation de trajectoire — Bateau 2D
 %  CasADi + IPOPT
 % Modele d'etat vitesses cartesiennes
 % Ne fonctionne pas correctement
